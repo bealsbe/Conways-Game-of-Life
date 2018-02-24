@@ -13,7 +13,6 @@ namespace Test
         [STAThread]
         static void Main(string[] args)
         {
-
             Application.EnableVisualStyles();
             Application.DoEvents();
             Application.Run(new MainForm());
