@@ -10,22 +10,20 @@ namespace Test
     public partial class MainForm :Form
     {
         Grid grid;
+
         Bitmap DrawArea;
+        Graphics graphics;
+
 
         public MainForm()
         {
             InitializeComponent();
-            grid = new Grid(400 , 400);
+            grid = new Grid(100 , 100);
             grid.Randomize();
-            DrawArea = new Bitmap(drawBox.Size.Width , drawBox.Size.Height);
-            drawBox.Image = DrawArea;
             backgroundWorker.WorkerSupportsCancellation = true;
-            drawWorker.WorkerSupportsCancellation = true;
             comboBox_size.SelectedItem = "100";
+            DrawArea = new Bitmap(drawBox.Size.Width , drawBox.Size.Height);
         }
-
-        private void MainForm_Load(object sender , EventArgs e) => drawWorker.RunWorkerAsync();
-
 
         private void button1_Click(object sender , EventArgs e)
         {
@@ -36,16 +34,15 @@ namespace Test
         }
 
 
-        private void drawBox_Click(object sender , MouseEventArgs e)
+        private void drawBox_onMousedown(object sender , MouseEventArgs e)
         {
             if(!backgroundWorker.IsBusy)
             {
-                var point = drawBox.PointToClient(Cursor.Position);
-                int x = point.X / (drawBox.Width / grid.Width + 1);
-                int y = point.Y / (drawBox.Height / grid.Height + 1);
-
                 this.Invoke((Action)(() =>
                 {
+                    var point = drawBox.PointToClient(Cursor.Position);
+                    int x = point.X / (drawBox.Width / grid.Width + 1);
+                    int y = point.Y / (drawBox.Height  / grid.Height + 1);
                     grid.flipPoint(x , y);
                     DrawGrid();
                 }));
@@ -57,6 +54,8 @@ namespace Test
             while(!backgroundWorker.CancellationPending)
             {
                 grid.Advance();
+                DrawGrid();
+                System.GC.Collect();
             }
         }
 
@@ -89,14 +88,17 @@ namespace Test
 
         private void DrawGrid()
         {
-            drawBox.Image = DrawArea;
-            Graphics graphics;
-            graphics = Graphics.FromImage(DrawArea);
-            SolidBrush brush = new SolidBrush(Color.White);
+            this.Invoke((Action)(() =>
+            {
+                drawBox.Image = DrawArea;
+                graphics = Graphics.FromImage(DrawArea);
+            }));
+
+            SolidBrush brush = new SolidBrush(Color.Black);
             Pen pen = new Pen(Color.Black);
 
-            int w = (drawBox.Width / grid.Width + 1);
-            int h = (drawBox.Height / grid.Height + 1);
+            float w = (drawBox.Width / grid.Width+1);
+            float h = (drawBox.Height / grid.Height+1);
 
             for(int i = 0; i < grid.Width; i++)
             {
@@ -104,27 +106,29 @@ namespace Test
                 {
                     if(grid.IsAlive(i , j))
                     {
-                        brush.Color = Color.Maroon;
+                        brush.Color = Color.LimeGreen;
                     }
                     else
                     {
-                        brush.Color = Color.White;
+                        brush.Color = Color.Black;
                     }
-                    Rectangle rect = new Rectangle((i * w) , (j * h) , w , h);
+                    Rectangle rect = new Rectangle((int)(i * w) , (int)(j * h) , (int)w , (int)h);
                     graphics.FillRectangle(brush , rect);
-                    //    graphics.DrawRectangle(pen , rect);
-
+                    graphics.DrawRectangle(pen , rect);
                 }
             }
         }
 
-        private void drawWorker_DoWork(object sender , DoWorkEventArgs e)
+        private void button5_Click(object sender , EventArgs e)
         {
-            while(!drawWorker.CancellationPending)
+            if(!backgroundWorker.IsBusy)
             {
+                grid.Advance();
                 DrawGrid();
             }
         }
+
+        private void MainForm_Load(object sender , EventArgs e) => DrawGrid();
     }
 }
 
